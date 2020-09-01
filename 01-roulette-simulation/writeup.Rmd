@@ -1,0 +1,244 @@
+---
+title: "writeup"
+author: "Logan King"
+date: "8/31/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+```{r Martingale strategy code, include = FALSE}
+#' A single play of the Martingale strategy
+#'
+#' Takes a state list, spins the roulette wheel, returns the state list with updated values (for example, budget, plays, etc)
+#' @param state A list with the following entries: 
+#'   B              number, the budget
+#'   W              number, the budget threshold for successfully stopping
+#'   L              number, the maximum number of plays 
+#'   M              number, the casino wager limit
+#'   plays          integer, the number of plays executed
+#'   previous_wager number, the wager in the previous play (0 at first play)
+#'   previous_win   TRUE/FALSE, indicator if the previous play was a win (TRUE at first play)
+#' @return The updated state list
+one_play <- function(state){
+  
+    # Wager
+    proposed_wager <- ifelse(state$previous_win, 1, 2*state$previous_wager)
+    wager <- min(proposed_wager, state$M, state$B)
+    
+    # Spin of the wheel
+    red <- rbinom(1,1,18/38)
+    
+    # Update state
+    state$plays <- state$plays + 1
+    state$previous_wager <- wager
+    if(red){
+      # WIN
+      state$B <- state$B + wager
+      state$previous_win <- TRUE
+    }else{
+      # LOSE
+      state$B <- state$B - wager
+      state$previous_win <- FALSE
+    }
+  state
+}
+
+
+#' Stopping rule
+#'
+#' Takes the state list and determines if the gambler has to stop
+#' @param state A list.  See one_play
+#' @return TRUE/FALSE
+stop_play <- function(state){
+  if(state$B <= 0) return(TRUE)
+  if(state$plays >= state$L) return(TRUE)
+  if(state$B >= state$W) return(TRUE)
+  FALSE
+}
+
+
+#' Play roulette to either bankruptcy, success, or play limits
+#'
+#' @param B number, the starting budget
+#' @param W number, the budget threshold for successfully stoping
+#' @param L number, the maximum number of plays 
+#' @param M number, the casino wager limit
+#' @return A vector of budget values calculated after each play.
+one_series <- function(
+    B = 200
+  , W = 300
+  , L = 1000
+  , M = 100
+){
+
+  # initial state
+  state <- list(
+    B = B
+  , W = W
+  , L = L
+  , M = M
+  , plays = 0
+  , previous_wager = 0
+  , previous_win = TRUE
+  )
+  
+  # vector to store budget over series of plays
+  budget <- rep(NA, L)
+  
+  # For loop of plays
+  for(i in 1:L){
+    new_state <- state %>% one_play
+    budget[i] <- new_state$B
+    if(new_state %>% stop_play){
+      return(budget[1:i])
+    }
+    state <- new_state
+  }
+  budget    
+}
+
+# helper function
+get_last <- function(x) x[length(x)] 
+
+
+# Simulation
+walk_out_money <- rep(NA, 10000)
+for(j in seq_along(walk_out_money)){
+  walk_out_money[j] <- one_series(B = 200, W = 300, L = 1000, M = 100) %>% get_last
+}
+
+# Walk out money distribution
+hist(walk_out_money, breaks = 100)
+
+# Estimated probability of walking out with extra cash
+mean(walk_out_money > 200)
+
+# Estimated earnings
+mean(walk_out_money - 200)
+
+```
+
+# Using Computer Simulation to Analyze the Martingale Strategy in Roulette
+
+Despite being notorious for having the worst odds to win of the various casino game offerings, people gather around the roulette table day after day with hopes of winning big. Several strategies have been developed to try and improve roulette outcomes, one of which being the [Martingale strategy](https://github.com/thomasgstewart/data-science-5620-Fall-2020/blob/master/deliverables/01-roulette.md).  
+
+With simulation, it is possible to calculate the average earnings for a player utilizing the Martingale strategy over many repetitions. This will allow for evaluation of whether or not Martingale is a profitable strategy. To begin, several functions must be created. A function for a single play of the roulette game, a function for when play should cease, and a function for an overall series of plays.  
+
+## Single Play Function
+The single play function takes several inputs which describe the game state prior to a spin of the roulette wheel. The output for the function is the game state following a spin of the wheel. The parameters which make up the game state are: player budget, maximum budget threshold for stopping play (essentially one's ideal end cash amount to be satisfied with no longer playing), the maximum allowed number of plays, the casino's wager limit, the number of plays that have occurred, the previous wager amount, and the previous outcome (win/loss). These parameters are used for the input of the single play function and will be updated as the output, following one play.  
+
+## Stopping Function
+The stopping function is necessary for construction of the function for a series of plays. The stopping function is an indicator of whether or not play at the roulette table should continue. There are three instances in which this function will trigger the game to end: when the budget reaches zero, when the maximum number of plays have been reached, and when the budget is greater than the max budget threshold. If none of the previously mentioned game state conditions have been met, play will continue.  
+
+## Series of Play Function
+The series of play function executes the one play function on a given set of parameters repeatedly until the stopping function triggers the series to end. Given initial inputs of budget, winning threshold, maximum number of plays, and maximum wager amount, the series function can calculate the final budget, earnings, and number of plays over a series of roulette spins.  
+
+## Simulation
+Using simulation, we can specify the amount of series of roulette plays to be simulated. With simulation, the long run viability of the Martingale strategy can be evaluated. For the purposes of this exercise, 10,000 series will be simulated. The end budget result of each series is then stored in a vector to allow for calculation of average earnings.  
+
+## Average Earnings
+When simulated 10,000 times given the following parameters:
+
+* Starting Budget: $200
+* Winning Threshold: $300
+* Max Plays: 1000
+* Max Wager: $100
+
+Over 10,000 repetitions, we see that the Martingale strategy is not profitable, as the average earnings are `r paste0('$',mean(walk_out_money-200))`.  
+
+## Earnings Over a Series
+
+```{r earnings over a series, echo=FALSE}
+set.seed(100)
+plot(one_series(B = 200, W = 300, L = 1000, M = 100)-200, xlab='Play Number', ylab='Earnings', type = 'l', main = 'Earnings Over A Series')
+plot(one_series(B = 200, W = 300, L = 1000, M = 100)-200, xlab='Play Number', ylab='Earnings', type = 'l', main = 'Earnings Over A Series')
+plot(one_series(B = 200, W = 300, L = 1000, M = 100)-200, xlab='Play Number', ylab='Earnings', type = 'l', main = 'Earnings Over A Series')
+
+```
+
+The above plots each display examples of a single series of roulette plays. In the first two, the Martingale strategy provides earnings of \$100 (a final budget of \$300) after approximately 200 and 250 turns, respectively. In the third series example, the strategy leaves the gambler with -\$200 in earnings (a final budget of \$0) after just 8 turns.   
+
+## Changing Parameters
+```{r changing starting budget,include=FALSE}
+bud <- c(100,200,500,1000,5000)
+
+budget <- data.frame(numeric(),numeric())
+for(i in bud){
+walk_out_money <- rep(NA, 10000)
+for(j in seq_along(walk_out_money)){
+  walk_out_money[j] <- one_series(B = i, W = 300, L = 1000, M = 100) %>% get_last
+}
+budget <- rbind(budget,c(i,mean(walk_out_money-i)))
+}
+colnames(budget) <- c('Budget', 'Avg_Earnings')
+```
+
+```{r changing winning threshold,include=FALSE}
+win <- c(200,500,1000,5000,10000)
+
+winthresh <- data.frame(numeric(),numeric())
+for(i in win){
+walk_out_money <- rep(NA, 10000)
+for(j in seq_along(walk_out_money)){
+  walk_out_money[j] <- one_series(B = 200, W = i, L = 1000, M = 100) %>% get_last
+}
+winthresh <- rbind(winthresh,c(i,mean(walk_out_money-200)))
+}
+colnames(winthresh) <- c('Winning_Threshold', 'Avg_Earnings')
+```
+
+```{r changing max plays,include=FALSE}
+lim <- c(1,100,500,1000,5000,10000)
+
+playlim <- data.frame(numeric(),numeric())
+for(i in lim){
+walk_out_money <- rep(NA, 10000)
+for(j in seq_along(walk_out_money)){
+  walk_out_money[j] <- one_series(B = 200, W = 300, L = i, M = 100) %>% get_last
+}
+playlim <- rbind(playlim,c(i,mean(walk_out_money-200)))
+}
+colnames(playlim) <- c('Play_Limit', 'Avg_Earnings')
+```
+
+```{r changing max wager,include=FALSE}
+maxwag <- c(50,100,250,500,1000,5000)
+
+maxwager <- data.frame(numeric(),numeric())
+for(i in maxwag){
+walk_out_money <- rep(NA, 10000)
+for(j in seq_along(walk_out_money)){
+  walk_out_money[j] <- one_series(B = 200, W = 300, L = 1000, M = i) %>% get_last
+}
+maxwager <- rbind(maxwager,c(i,mean(walk_out_money-200)))
+}
+colnames(maxwager) <- c('Max_Wager', 'Avg_Earnings')
+```
+
+A change in the parameters allows us to see the interaction with each on the average earnings. As each individual parameter changes, the other parameters hold their default value seen in the initial simulation.  
+
+```{r parameter change plots,echo=FALSE}
+plot(budget, type = 'l')
+plot(winthresh, type = 'l')
+plot(playlim, type = 'l')
+plot(maxwager, type = 'l')
+```
+
+As seen in the above plots, altering the parameters doesn't ever make the Martingale strategy profitable in the long run. However, changing certain parameters may serve to mitigate long-term losses. Increasing the initial starting budget causes earnings to approach zero in the long term. Meanwhile, a winning threshold close to the initial starting budget mitigates long term losses. For casino-implemented rules of maximum plays and maximum wager amount, behavior is mirrored. Generally, losses are mitigated by fewer plays and a higher max wager.  
+
+## Average Number of Plays
+```{r avg number of plays, include=FALSE}
+num_of_turns <- rep(NA, 10000)
+for(j in seq_along(num_of_turns)){
+  num_of_turns[j] <- one_series(B = 200, W = 300, L = 1000, M = 100) %>% length()
+}
+mean(num_of_turns)
+```
+Similar to how the average earnings over 10,000 simulated series were calculated, the average number of plays is able to be calculated. Instead of recording the earnings of each series in a vector and taking the mean, the number of turns in a series is recorded. The average number of turns over 10,000 repetitions is `r mean(num_of_turns)`.
+
+## Limitations
+As with any model, the simulation method of the Martingale strategy has limitations. The simulation does not take into account any payout rules that the casino may have enforced for the roulette game, we assume a 1:1 payout. Additionally, the model assumes that the player is placing bets on red each turn. It is important to note that while a roulette player may see success over a given series or group of series, simulation looks at the long term outcome expectation.
