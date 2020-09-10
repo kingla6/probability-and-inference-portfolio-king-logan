@@ -2,9 +2,7 @@
 title: "writeup"
 author: "Logan King"
 date: "9/7/2020"
-output: 
-  html_document:
-    code_folding: hide
+output: github_document
 ---
 
 Probability is a concept that is prevalent in everyday life. Answers to questions such as "How likely is this coin to land on heads?" to "How likely is it that the wait for my morning coffee will be longer than 5 minutes?" can be estimated with probability theory. Using computer simulation, a probabilistic event can be replicated many times to see how much the observed outcome differs from the expectation. This diversion of the observed outcome from the expected outcome is known as error. Error can be viewed through the lens of absolute and relative error, defined mathematically below:
@@ -85,6 +83,7 @@ title(main = title1)
 title(ylab = title2, line = 2)
 title(xlab = 'Sample Size', line = 1.5)
 ```
+
 From this plot, it is clear that the mean absolute error is highest for all probabilities at the smallest sample size. No matter the probability of a given event, it should be conducted many times in order to observe the least amount of absolute error. A good rule of thumb would be to conduct an event at least 10,000 times, as the error begins to approach zero at this sample size. Another clear takeaway from this plot is the higher error levels for higher probabilities at low sample sizes, reinforcing the importance of a high sample size of events. 
 
 ```{r plot for MRE}
@@ -113,6 +112,5 @@ title(xlab = 'Sample Size', line = 1.5)
 ```
 
 Once again, the importance of a large sample size for events is seen as the mean relative error approaches zero for all probability levels after 10,000. However, the error levels at low sample sizes are flipped for the probabilities as compared to the previous plot. Relative error levels for low probabilities are higher than those of the high probabilities at the low sample sizes. This is likely due to low probabilities being penalized more when an error is experienced, as the expected probability value is the denominator in the relative error equation.
-
 
 Whether simulating a coin flip or the length of your wait for coffee, be sure to include a high number of samples in your simulation for the greatest accuracy. A low number of samples could cause error in your simulated wait for coffee and make you late for work!
