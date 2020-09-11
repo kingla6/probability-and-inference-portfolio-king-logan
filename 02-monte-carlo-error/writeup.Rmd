@@ -14,6 +14,8 @@ Absolute error is the absolute value of the observed outcome (phat) minus the ex
 
 To display the concepts of absolute and relative error, 10,000 simulations of a binomial event (an event with two outcomes: success or failure) with varying probabilities for success are run for a given number of sample sizes. For a each set of simulations, the mean absolute and relative errors are recorded and plotted. 
 
+<details>
+  <summary>See code here:</summary>
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -58,8 +60,8 @@ for (i in 1:nrow(simulation_settings)){
   simulation_settings[i,c('mae','mre')] <- simulation_settings[i,] %>% as.list() %>% one_p_n()
 }
 ```
-
-```{r plot for MAE}
+</details>
+```{r plot for MAE, echo=FALSE}
 title1 <- 'Mean Absolute Error'
 title2 <- 'MAE'
 logbase <- 10
@@ -86,7 +88,7 @@ title(xlab = 'Sample Size', line = 1.5)
 
 From this plot, it is clear that the mean absolute error is highest for all probabilities at the smallest sample size. No matter the probability of a given event, it should be conducted many times in order to observe the least amount of absolute error. A good rule of thumb would be to conduct an event at least 10,000 times, as the error begins to approach zero at this sample size. Another clear takeaway from this plot is the higher error levels for higher probabilities at low sample sizes, reinforcing the importance of a high sample size of events. 
 
-```{r plot for MRE}
+```{r plot for MRE, echo=FALSE}
 title1 <- 'Mean Relative Error'
 title2 <- 'MRE'
 logbase <- 10

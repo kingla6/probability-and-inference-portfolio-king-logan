@@ -31,6 +31,10 @@ failure) with varying probabilities for success are run for a given
 number of sample sizes. For a each set of simulations, the mean absolute
 and relative errors are recorded and plotted.
 
+<details>
+
+<summary>See code here:</summary>
+
 ``` r
 library(magrittr)
 library(tgsify)
@@ -99,30 +103,7 @@ for (i in 1:nrow(simulation_settings)){
 }
 ```
 
-``` r
-title1 <- 'Mean Absolute Error'
-title2 <- 'MAE'
-logbase <- 10
-simulation_settings %>% 
-  mutate(col = factor(p) %>% as.numeric()) %>% 
-  plotstyle(upright, mar = c(3,3,2,1)) %>% 
-  plot_setup(mae ~ log(ss, base = logbase)) %>% 
-  split(.$p) %>% 
-  lwith({
-    lines(log(ss, base = logbase), mae, type = 'b', col = col[1], lwd = 4)
-    c(p[1], col[1])
-  }) %>% 
-  do.call('rbind', .) %>% 
-  (function(x){
-    legend('topright', legend = 'p= ' %|% x[,1], col = x[,2], lwd = 4)
-  })
-box()
-axis(side = 1, at = axTicks(1), labels = logbase^axTicks(1))
-axis(2)
-title(main = title1)
-title(ylab = title2, line = 2)
-title(xlab = 'Sample Size', line = 1.5)
-```
+</details>
 
 ![](writeup_files/figure-gfm/plot%20for%20MAE-1.png)<!-- -->
 
@@ -134,31 +115,6 @@ conduct an event at least 10,000 times, as the error begins to approach
 zero at this sample size. Another clear takeaway from this plot is the
 higher error levels for higher probabilities at low sample sizes,
 reinforcing the importance of a high sample size of events.
-
-``` r
-title1 <- 'Mean Relative Error'
-title2 <- 'MRE'
-logbase <- 10
-simulation_settings %>% 
-  mutate(col = factor(p) %>% as.numeric()) %>% 
-  plotstyle(upright, mar = c(3,3,2,1)) %>% 
-  plot_setup(mre ~ log(ss, base = logbase)) %>% 
-  split(.$p) %>% 
-  lwith({
-    lines(log(ss, base = logbase), mre, type = 'b', col = col[1], lwd = 4)
-    c(p[1], col[1])
-  }) %>% 
-  do.call('rbind', .) %>% 
-  (function(x){
-    legend('topright', legend = 'p= ' %|% x[,1], col = x[,2], lwd = 4)
-  })
-box()
-axis(side = 1, at = axTicks(1), labels = logbase^axTicks(1))
-axis(2)
-title(main = title1)
-title(ylab = title2, line = 2)
-title(xlab = 'Sample Size', line = 1.5)
-```
 
 ![](writeup_files/figure-gfm/plot%20for%20MRE-1.png)<!-- -->
 
