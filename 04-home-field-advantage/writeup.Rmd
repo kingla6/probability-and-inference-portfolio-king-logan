@@ -181,4 +181,42 @@ ggplot(pb_comp_long, aes(x = pb*100, y = win_prob*100, color = adv_mult)) +
 
 From the above plots, several conclusions can be made. When a series is primarily away games for a team, no advantage is better than a 10% home field advantage boost when the probability of winning a single game is below approximately 55%. Above that point, home field advantage becomes more beneficial. This trend is reversed when a series is primarily home games for a team. In this instance, no home field advantage is only ideal up until approximately 45% probability of winning a single game. After that point, home field advantage is more beneficial.
 
+## Problem 5 Update
 
+<details>
+  <summary>See code here (plot code hidden by echo=FALSE in next chunk):</summary>
+```{r build dataset update}
+p5_update <- expand.grid(pb = .55,
+                         adv_mult = seq(1, 2, by = .01),
+                         four_home_games = NA_real_,
+                         four_away_games = NA_real_,
+                         KEEP.OUT.ATTRS = F)
+
+for(i in 1:nrow(p5_update)){
+  p5_update[i,'four_away_games'] <- analytical_ws(hfi = c(0,0,1,1,1,0,0), 
+                                                pb = p5_update[i,'pb'], 
+                                                adv_mult = p5_update[i,'adv_mult'])$V1[1]
+  p5_update[i,'four_home_games'] <- analytical_ws(hfi = c(1,1,0,0,0,1,1),
+                                                pb = p5_update[i,'pb'],
+                                                adv_mult = p5_update[i,'adv_mult'])$V1[1]
+}
+```
+</details>
+
+```{r updated plot, echo=FALSE}
+p5_long <- p5_update %>% 
+  pivot_longer(-c(pb, adv_mult), names_to = 'location', values_to = 'win_prob')
+
+ggplot(p5_long, aes(x = adv_mult, y = win_prob*100, color = location)) +
+  geom_line() +
+  labs(title = 'Home Field Advantage Effects vs World Series Win Probability',
+       subtitle = 'given a 55% chance of winning a single game',
+       x = 'Home Field Advantage Effect',
+       y = 'Probability of Winning the World Series',
+       color = 'Location for Majority of Games') +
+  scale_y_continuous(limits = c(0,100),
+                     breaks=seq(0, 100, 25),
+                     labels = function(x){paste0(x, '%')})
+```
+
+We see that the difference in probability of winning the world series does depend on the home field advantage factor. A team with a 55% probability of winning a single game sees around a 60% chance of winning the WS when there is no home field advantage factor. As the effect of home field advantage increases, the probability of winning the WS increases if the team plays a majority of home games and decreases as the team plays a majority of away games.  

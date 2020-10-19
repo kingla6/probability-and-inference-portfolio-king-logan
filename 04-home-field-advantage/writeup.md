@@ -19,14 +19,14 @@ methods.
 library(tidyverse)
 ```
 
-    ## -- Attaching packages ----------------------------------------------------------- tidyverse 1.3.0 --
+    ## -- Attaching packages ---------------------------------------------------------- tidyverse 1.3.0 --
 
     ## v ggplot2 3.3.2     v purrr   0.3.4
     ## v tibble  3.0.3     v dplyr   1.0.2
     ## v tidyr   1.1.2     v stringr 1.4.0
     ## v readr   1.3.1     v forcats 0.5.0
 
-    ## -- Conflicts -------------------------------------------------------------- tidyverse_conflicts() --
+    ## -- Conflicts ------------------------------------------------------------- tidyverse_conflicts() --
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
 
@@ -284,3 +284,41 @@ more beneficial. This trend is reversed when a series is primarily home
 games for a team. In this instance, no home field advantage is only
 ideal up until approximately 45% probability of winning a single game.
 After that point, home field advantage is more beneficial.
+
+## Problem 5 Update
+
+<details>
+
+<summary>See code here (plot code hidden by echo=FALSE in next
+chunk):</summary>
+
+``` r
+p5_update <- expand.grid(pb = .55,
+                         adv_mult = seq(1, 2, by = .01),
+                         four_home_games = NA_real_,
+                         four_away_games = NA_real_,
+                         KEEP.OUT.ATTRS = F)
+
+for(i in 1:nrow(p5_update)){
+  p5_update[i,'four_away_games'] <- analytical_ws(hfi = c(0,0,1,1,1,0,0), 
+                                                pb = p5_update[i,'pb'], 
+                                                adv_mult = p5_update[i,'adv_mult'])$V1[1]
+  p5_update[i,'four_home_games'] <- analytical_ws(hfi = c(1,1,0,0,0,1,1),
+                                                pb = p5_update[i,'pb'],
+                                                adv_mult = p5_update[i,'adv_mult'])$V1[1]
+}
+```
+
+</details>
+
+    ## Warning: Removed 19 row(s) containing missing values (geom_path).
+
+![](writeup_files/figure-gfm/updated%20plot-1.png)<!-- -->
+
+We see that the difference in probability of winning the world series
+does depend on the home field advantage factor. A team with a 55%
+probability of winning a single game sees around a 60% chance of winning
+the WS when there is no home field advantage factor. As the effect of
+home field advantage increases, the probability of winning the WS
+increases if the team plays a majority of home games and decreases as
+the team plays a majority of away games.
