@@ -1,0 +1,320 @@
+---
+title: "writeup"
+author: "Logan King"
+date: "10/12/2020"
+output: github_document
+---
+
+Log transform
+=============
+
+It is common in the analysis of biological data to log transform data
+representing concentrations or data representing dose response.
+
+Part 1
+------
+
+The below examples will display how the probability and cumulative density functions of distributions are affected by transformations and will examine the differences between arithmetic and geometric means of said distributions. 
+
+### Distribution 1
+
+*X* ∼ GAMMA(shape = 3, scale = 1)
+
+[Interactive plot (link)](https://www.desmos.com/calculator/wgqdkl5ogl)
+
+<details>
+  <summary>See code here:</summary>
+```{r gamma distribution and summary statistics}
+gamma_shape <- 3
+gamma_scale <- 1
+x <- seq(-5, 15, by = .1)
+
+gamma_pdf <- dgamma(x, shape = gamma_shape, scale = gamma_scale)
+gamma_cdf <- pgamma(x, shape = gamma_shape, scale = gamma_scale)
+
+gamma_mean <- gamma_shape * gamma_scale
+gamma_median <- qgamma(.5, shape = gamma_shape, scale = gamma_scale)
+```
+</details>
+
+```{r gamma PDF, echo = FALSE}
+plot(x, gamma_pdf, type = 'l', main = 'PDF of Gamma Dist', sub = 'mean = red; median = blue')
+abline(v = gamma_mean, col = 'red')
+abline(v = gamma_median, col = 'blue')
+```
+```{r gamma CDF, echo = FALSE}
+plot(x, gamma_cdf, type = 'l', main = 'CDF of Gamma Dist', sub = 'mean = red; median = blue')
+abline(v = gamma_mean, col = 'red')
+abline(v = gamma_median, col = 'blue')
+```
+
+In the above PDF and CDF of the gamma distribution (given a shape of 3 and scale of 1), we see the density beginning to rise at 0 and reaching peak density prior to reaching the median and mean values. The density bottoms out at around 10. In the gamma distribution, we observe a greater mean than median due to the skewed nature of the distribution.
+
+<details>
+  <summary>See code here:</summary>
+```{r transformed gamma distribution}
+log_gamma <- log(rgamma(10000, shape = gamma_shape, scale = gamma_scale))
+
+log_gamma_mean <- log(gamma_mean)
+log_gamma_median <- log(gamma_median)
+```
+</details>
+
+```{r transformed gamma PDF, echo = FALSE}
+hist(log_gamma, breaks = 100, sub = 'mean = red; median = blue')
+abline(v = log_gamma_mean, col = 'red')
+abline(v = log_gamma_median, col = 'blue')
+```
+```{r transformed gamma CDF, ECHO = FALSE}
+plot(ecdf(log_gamma), sub = 'mean = red; median = blue')
+abline(v = log_gamma_mean, col = 'red')
+abline(v = log_gamma_median, col = 'blue')
+```
+
+Using simulation, we are able to estimate a PDF (by way of the histogram) and CDF (by way of ECDF) of the log transformation of the gamma distribution. We now see a distribution which is much less skewed and relatively close to normal. The density is represented over the values of -3 to 3, as opposed to strictly non-negative values previously. While the mean is still greater than the median, both values appear closer to the maximum density than in the original gamma distribution. 
+
+<details>
+  <summary>See code here:</summary>
+```{r arithmetic and geometric means gamma}
+arithmetic_mean <- NA
+geometric_mean <- NA
+
+for(i in 1:1000) {
+    data = rgamma(100, shape = gamma_shape, scale = gamma_scale)
+    arithmetic_mean[i] = mean(data)
+    geometric_mean[i] = exp(mean(log(data)))
+}
+```
+</details>
+
+```{r means scatter gamma, echo = FALSE}
+plot(arithmetic_mean, geometric_mean, main = 'Scatterplot of Arithmetic vs Geometric Means - Gamma')
+abline(0,1)
+```
+
+```{r means differences gamma, echo = FALSE}
+hist(arithmetic_mean-geometric_mean)
+```
+
+When simulating arithmetic and geometric means for 1000 samples of size 100 for the gamma distribution, we observe each sample's arithmetic mean as greater than its geometric mean. This makes sense because the arithmetic mean is drawn from the sample in absolute terms, while the geometric mean is drawn from the sample in relative terms. There appears to be a strong positive correlation between the two types of means, based on the scatterplot.
+
+### Distribution 2
+
+*X* ∼ LOG NORMAL(*μ* =  − 1, *σ* = 1)
+
+[Interactive plot (link)](https://www.desmos.com/calculator/rueernwrhl)
+
+<details>
+  <summary>See code here:</summary>
+```{r lognormal distribution and summary statistics}
+lognormal_meanlog <- -1
+lognormal_sdlog <- 1
+x <- seq(-2, 10, by = .1)
+
+lognormal_pdf <- dlnorm(x, meanlog = lognormal_meanlog, sdlog = lognormal_sdlog)
+lognormal_cdf <- plnorm(x, meanlog = lognormal_meanlog, sdlog = lognormal_sdlog)
+
+lognormal_mean <- exp(lognormal_meanlog + (lognormal_sdlog ^ 2) / 2)
+lognormal_median <- qlnorm(.5, meanlog = lognormal_meanlog, sdlog = lognormal_sdlog)
+```
+</details>
+
+```{r lognormal PDF, echo = FALSE}
+plot(x, lognormal_pdf, type = 'l', main = 'PDF of Lognormal Dist', sub = 'mean = red; median = blue')
+abline(v = lognormal_mean, col = 'red')
+abline(v = lognormal_median, col = 'blue')
+```
+
+```{r lognormal CDF, echo = FALSE}
+plot(x, lognormal_cdf, type = 'l', main = 'CDF of Lognormal Dist', sub = 'mean = red; median = blue')
+abline(v = gamma_mean, col = 'red')
+abline(v = gamma_median, col = 'blue')
+```
+
+In the above PDF and CDF of the lognormal distribution (given a log scale mean of -1 and log scale sd of 1), we see the density beginning to rise at 0 and reaching peak density prior to reaching the median and mean values. The density bottoms out just after 6. In the lognormal distribution, we observe a greater mean than median due to the skewed nature of the distribution.
+
+<details>
+  <summary>See code here:</summary>
+```{r transformed lognormal distribution}
+log_lognormal <- log(rlnorm(10000, meanlog = lognormal_meanlog, sdlog = lognormal_sdlog))
+
+log_lognormal_mean <- log(lognormal_mean)
+log_lognormal_median <- log(lognormal_median)
+```
+</details>
+
+```{r transformed lognormal PDF, echo = FALSE}
+hist(log_lognormal, breaks = 100, sub = 'mean = red; median = blue')
+abline(v = log_lognormal_mean, col = 'red')
+abline(v = log_lognormal_median, col = 'blue')
+```
+
+```{r transformed lognormal CDF, echo = FALSE}
+plot(ecdf(log_lognormal), sub = 'mean = red; median = blue')
+abline(v = log_lognormal_mean, col = 'red')
+abline(v = log_lognormal_median, col = 'blue')
+```
+
+Using simulation, we are able to estimate a PDF (by way of the histogram) and CDF (by way of ECDF) of the log transformation of the lognormal distribution. We now see a distribution which is much less skewed and extremely close to normal. The density is represented over the values of -4 to 2, as opposed to strictly non-negative values previously. While the mean is still greater than the median, both values appear closer to the maximum density than in the original lognormal distribution. 
+
+<details>
+  <summary>See code here:</summary>
+```{r arithmetic and geometric means lognormal}
+arithmetic_mean <- NA
+geometric_mean <- NA
+
+for(i in 1:1000) {
+    data = rlnorm(100, meanlog = lognormal_meanlog, sdlog = lognormal_sdlog)
+    arithmetic_mean[i] = mean(data)
+    geometric_mean[i] = exp(mean(log(data)))
+}
+```
+</details>
+
+```{r means scatter lognormal, echo = FALSE}
+plot(arithmetic_mean, geometric_mean, main = 'Scatterplot of Arithmetic vs Geometric Means - Lognormal')
+abline(0,1)
+```
+
+```{r means differences lognormal, echo = FALSE}
+hist(arithmetic_mean-geometric_mean)
+```
+
+When simulating arithmetic and geometric means for 1000 samples of size 100 for the lognormal distribution, we observe each sample's arithmetic mean as greater than its geometric mean. This makes sense because the arithmetic mean is drawn from the sample in absolute terms, while the geometric mean is drawn from the sample in relative terms. There appears to be a weaker positive correlation between the two types of means for this distribution than with the gamma distribution, based on the scatterplot.
+
+### Distribution 3
+
+*X* ∼ UNIFORM(0, 12)
+
+<details>
+  <summary>See code here:</summary>
+```{r uniform distribution and summary statistics}
+unif_min <- 0
+unif_max <- 12
+x <- seq(-1, 13, by = .1)
+
+unif_pdf <- dunif(x, min = unif_min, max = unif_max)
+unif_cdf <- punif(x, min = unif_min, max = unif_max)
+
+unif_mean_median <- (unif_min + unif_max) / 2
+```
+</details>
+
+```{r uniform PDF, echo = FALSE}
+plot(x, unif_pdf, type = 'l', main = 'PDF of Uniform Dist', sub = 'mean = median = red')
+abline(v = unif_mean_median, col = 'red')
+```
+
+```{r uniform CDF, echo = FALSE}
+plot(x, unif_cdf, type = 'l', main = 'CDF of Uniform Dist', sub = 'mean = median = red')
+abline(v = unif_mean_median, col = 'red')
+```
+
+In the above PDF and CDF of the uniform distribution (given a minimum of 0 and maximum of 12), we see the density at a constant from 0 to 12 and at 0 elsewhere. The mean and median are equivalent in this distribution. The CDF increases at a constant rate over the 0 to 12 interval. 
+
+<details>
+  <summary>See code here:</summary>
+```{r transformed uniform distribution}
+log_unif <- log(runif(10000, min = unif_min, max = unif_max))
+
+log_unif_mean_median <- log(unif_mean_median)
+```
+</details>
+
+```{r transformed uniform PDF, echo = FALSE}
+hist(log_unif, breaks = 100, sub = 'mean = median = red')
+abline(v = log_unif_mean_median, col = 'red')
+```
+
+```{r transformed uniform CDF, echo = FALSE}
+plot(ecdf(log_unif), sub = 'mean = median = red')
+abline(v = log_unif_mean_median, col = 'red')
+```
+
+Using simulation, we are able to estimate a PDF (by way of the histogram) and CDF (by way of ECDF) of the log transformation of the uniform distribution. We now see a distribution which is much extremely left skewed. The density is represented over the values of ~-10 to ~2, as opposed to strictly values from 0 to 12 as previously seen. The mean and median do not diverge from each other, despite the transformation.
+
+<details>
+  <summary>See code here:</summary>
+```{r arithmetic and geometric means uniform}
+arithmetic_mean <- NA
+geometric_mean <- NA
+
+for(i in 1:1000) {
+    data = runif(100, min = unif_min, max = unif_max)
+    arithmetic_mean[i] = mean(data)
+    geometric_mean[i] = exp(mean(log(data)))
+}
+```
+</details>
+
+```{r means scatter uniform, echo = FALSE}
+plot(arithmetic_mean, geometric_mean, main = 'Scatterplot of Arithmetic vs Geometric Means - Uniform')
+abline(0,1)
+```
+
+```{r means differences uniform, echo = FALSE}
+hist(arithmetic_mean-geometric_mean)
+```
+
+When simulating arithmetic and geometric means for 1000 samples of size 100 for the uniform distribution, we observe each sample's arithmetic mean as greater than its geometric mean. This makes sense because the arithmetic mean is drawn from the sample in absolute terms, while the geometric mean is drawn from the sample in relative terms. There appears to be a strong positive correlation between the two types of means for this distribution, based on the scatterplot.
+
+Part 2
+------
+
+Simulation can be used to prove that if *X*<sub>*i*</sub> \> 0 for all *i*, then the arithmetic
+mean is greater than or equal to the geometric mean.
+
+<details>
+  <summary>See code here:</summary>
+```{r arithmetic and geometric means uniform proof}
+arithmetic_mean <- NA
+geometric_mean <- NA
+
+for(i in 1:10000) {
+    data = runif(1000, min = 1, max = 2)
+    arithmetic_mean[i] = mean(data)
+    geometric_mean[i] = exp(mean(log(data)))
+}
+```
+</details>
+
+```{r means scatter uniform proof, echo = FALSE}
+plot(arithmetic_mean, geometric_mean, main = 'Scatterplot of Arithmetic vs Geometric Means - Uniform')
+abline(0,1)
+```
+
+```{r means differences uniform proof, echo = FALSE}
+hist(arithmetic_mean-geometric_mean)
+```
+
+Similarly to part 1, the arithmetic and geometric means can be found by simulation. However, in order to prove that the arithmetic mean is ALWAYS greater than the geometric mean, a much larger simulation and set of samples are required. Here 10000 samples of size 1000 are drawn from the uniform distribution (given a minimum of 1 and maximum of 2). We observe every sample's recorded arithmetic mean as greater than its geometric mean. This makes sense because the arithmetic mean is drawn from the sample in absolute terms, while the geometric mean is drawn from the sample in relative terms. There appears to be a strong positive correlation between the two types of means for this distribution, based on the scatterplot.
+
+Part 3
+------
+
+In the relationship between *E*\[log (*X*)\] and log (*E*\[*X*\]), log (*E*\[*X*\]) is always larger.
+
+<details>
+  <summary>See code here:</summary>
+```{r expectation uniform proof}
+expectation_log <- NA
+log_expectation <- NA
+
+for(i in 1:10000) {
+    data = runif(1000, min = 1, max = 2)
+    expectation_log[i] = mean(log(data))
+    log_expectation[i] = log(mean(data))
+}
+```
+</details>
+
+```{r expextation uniform scatter, echo = FALSE}
+plot(expectation_log, log_expectation, main = 'Scatterplot of E[log(X)] vs log(E[X]) - Uniform')
+abline(0,1)
+```
+
+```{r expectation differences hist, echo = FALSE}
+hist(expectation_log-log_expectation)
+```
+
+Similarly to how the interactions of arithmetic and geometric means can be found by simulation, the interaction between transformed expectations can be found by simulation. Here 10000 samples of size 1000 are drawn from the uniform distribution (given a minimum of 1 and maximum of 2). The mean of each log transformation sample is compared with the log transformation of each sample mean. We observe log (*E*\[*X*\]) to always be greater. This makes sense, because the log of an absolute expectation will be greater than the expectation of a relative measure. Furthermore, there appears to be a strong positive correlation between the two transformations, based on the scatterplot.
