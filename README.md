@@ -7,3 +7,4 @@ Repo for DS 5620
 * Deliverable 3 - [World Series Discrete Probability Calculations](https://github.com/kingla6/probability-and-inference-portfolio-king-logan/blob/master/03-discrete-probability-calculations/writeup.md)
 * Deliverable 4 - [Home Field Advantage Analytical and Simulated Probability](https://github.com/kingla6/probability-and-inference-portfolio-king-logan/blob/master/04-home-field-advantage/writeup.md)
 * Deliverable 5 - [Log Transformation](https://github.com/kingla6/probability-and-inference-portfolio-king-logan/blob/master/05-log-transformation/writeup.md)
+* Deliverable 6 - [Order Statistics](https://github.com/kingla6/probability-and-inference-portfolio-king-logan/blob/master/06-order-statistics/writeup.md)
