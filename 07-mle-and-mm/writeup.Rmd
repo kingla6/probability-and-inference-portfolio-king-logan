@@ -224,26 +224,26 @@ abline(v = median(d1$gh), col = 'orange', lwd = 2)
 
 Generating 10000 samples of each distribution estimate and taking the median of each allows us to generate a sampling distribution of the medians to compare to the actual median. We see that the weibull distribution is the only one that succeeds in capturing the actual median of the sample, while the normal and gamma median sampling distributions overshoot the actual median of the sample.
 
-### Range of middle 95% of Samp Dist
+### Range of middle 95% of Median Samp Dist
 
 ```{r}
-dist_est <- c('Actual', 'Normal', 'Gamma', 'Weibull')
-middle_95 <- rbind(quantile(d1$gh, probs = c(.025, .975)),
-                   qnorm(c(.025,.975), mean = mle_norm_mean, sd = mle_norm_sd),
-                   qgamma(c(.025,.975), shape = mle_gamma_shape, scale = mle_gamma_scale),
-                   qweibull(c(.025,.975), shape = mle_weib_shape, scale = mle_weib_scale)) %>% as.data.frame()
+dist_est <- c('Normal', 'Gamma', 'Weibull')
+middle_95 <- rbind(quantile(medians_norm, probs = c(.025, .975)),
+                   quantile(medians_gamma, probs = c(.025, .975)),
+                   quantile(medians_weib, probs = c(.025, .975))) %>% as.data.frame()
 
 middle_95_dist <- cbind(dist_est, middle_95) %>% 
   mutate(`Distribution Estimate` = dist_est,
          `2.5%` = `2.5%` %>% round(3),
          `97.5%` = `97.5%` %>% round(3),
-         Range = `97.5%` - `2.5%`) %>% 
-  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range)
+         Range = `97.5%` - `2.5%`,
+         `Actual Median Contained` = ifelse(`2.5%` <= median(d1$gh) & `97.5%` >= median(d1$gh), T, F)) %>% 
+  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range, `Actual Median Contained`)
 
 kable(middle_95_dist)
 ```
 
-Similarly to how we calculated the medians of each distribution, we can calculate the middle 95% of the distribution estimates. We observe the gamma distribution to have the tightest interval, even less than that of the actual sample, while the range weibull distribution significantly exceeds the actual range. The interval allows us to see how close the main portions of the distributions are to the actual sample. We see that the normal and gamma provide the best estimate for the middle 95%, but both tend to lean lower, capturing values below the 2.5% and not capturing values up to 97.5%.
+We can calculate the middle 95% of the median sampling distributions by taking the quantiles at .025 and .975 for each of the median sampling distributions. We observe the gamma distribution to have the tightest interval - it is the most precise - while the range weibull distribution exceeds both the gamma and normal ranges by a significant margin. We see that the actual median is not contained in any of the 95% confidence intervals - none of the intervals are accurate. While the median sampling distribution for the weibull distribution did contain the actual median, it is not contained within the 95% confidence interval, so we can't be certain that the median will be within the weibull distribution every time it is simulated.
 
 ## MM
 
@@ -386,26 +386,26 @@ abline(v = median(d1$gh), col = 'orange', lwd = 2)
 
 Once again using simulation to generate medians, we observe the estimated median sampling distribution as compared to the actual median. Each distribution fails to capture the actual sample median in its sampling distribution, but we see the gamma distribution as closest to the actual value, confirming the above median table.
 
-### Range of middle 95% of Samp Dist
+### Range of middle 95% of Median Samp Dist
 
 ```{r}
-dist_est <- c('Actual', 'Normal', 'Gamma', 'Weibull')
-middle_95 <- rbind(quantile(d1$gh, probs = c(.025, .975)),
-                   qnorm(c(.025,.975), mean = mm_norm_mean, sd = mm_norm_sd),
-                   qgamma(c(.025,.975), shape = mm_gamma_shape, scale = mm_gamma_scale),
-                   qweibull(c(.025,.975), shape = mm_weib_shape, scale = mm_weib_scale)) %>% as.data.frame()
+dist_est <- c('Normal', 'Gamma', 'Weibull')
+middle_95 <- rbind(quantile(medians_norm, probs = c(.025, .975)),
+                   quantile(medians_gamma, probs = c(.025, .975)),
+                   quantile(medians_weib, probs = c(.025, .975))) %>% as.data.frame()
 
 middle_95_dist <- cbind(dist_est, middle_95) %>% 
   mutate(`Distribution Estimate` = dist_est,
          `2.5%` = `2.5%` %>% round(3),
          `97.5%` = `97.5%` %>% round(3),
-         Range = `97.5%` - `2.5%`) %>% 
-  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range)
+         Range = `97.5%` - `2.5%`,
+         `Actual Median Contained` = ifelse(`2.5%` <= median(d1$gh) & `97.5%` >= median(d1$gh), T, F)) %>% 
+  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range, `Actual Median Contained`)
 
 kable(middle_95_dist)
 ```
 
-Similarly to how we calculated the medians of each distribution, we can calculate the middle 95% of the distribution estimates. We observe each distribution to have a wider 95% interval than the actual sample. Similar to the MLE 95% interval estimates, the MM interval estimates are lower than the actual sample and dail to capture values up to 97.5%, however it occurs for every distribution with MM.
+We can calculate the middle 95% of the median sampling distributions by taking the quantiles at .025 and .975 for each of the median sampling distributions. Unlike the MLE method, the range of every confidence interval is similar - they all hold similar precision. We still find that the median is not contained in any of the distributions' confidence intervals - none are accurate. We see that the weibull distribution interval lies higher than the normal and gamma intervals - further away from the median, which is consistent with the above median sampling distribution histograms.
 
 ## Glycohemoglobin Takeaways
 
@@ -596,26 +596,26 @@ abline(v = median(d1$ht), col = 'orange', lwd = 2)
 
 Once again using simulation to generate median, we observe the estimated median sampling distribution as compared to the actual median. The normal distribution captures the actual median in the center of its sampling distribution. Gamma also captures the actual median, however gamma median values tend to lie lower than the actual median. Weibull fails to capture the actual median in this simulation.
 
-### Range of middle 95% of Samp Dist
+### Range of middle 95% of Median Samp Dist
 
 ```{r}
-dist_est <- c('Actual', 'Normal', 'Gamma', 'Weibull')
-middle_95 <- rbind(quantile(d1$ht, probs = c(.025, .975)),
-                   qnorm(c(.025,.975), mean = mle_norm_mean, sd = mle_norm_sd),
-                   qgamma(c(.025,.975), shape = mle_gamma_shape, scale = mle_gamma_scale),
-                   qweibull(c(.025,.975), shape = mle_weib_shape, scale = mle_weib_scale)) %>% as.data.frame()
+dist_est <- c('Normal', 'Gamma', 'Weibull')
+middle_95 <- rbind(quantile(medians_norm, probs = c(.025, .975)),
+                   quantile(medians_gamma, probs = c(.025, .975)),
+                   quantile(medians_weib, probs = c(.025, .975))) %>% as.data.frame()
 
 middle_95_dist <- cbind(dist_est, middle_95) %>% 
   mutate(`Distribution Estimate` = dist_est,
          `2.5%` = `2.5%` %>% round(3),
          `97.5%` = `97.5%` %>% round(3),
-         Range = `97.5%` - `2.5%`) %>% 
-  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range)
+         Range = `97.5%` - `2.5%`,
+         `Actual Median Contained` = ifelse(`2.5%` <= median(d1$ht) & `97.5%` >= median(d1$ht), T, F)) %>% 
+  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range, `Actual Median Contained`)
 
 kable(middle_95_dist)
 ```
 
-Similarly to how we calculated the medians of each distribution, we can calculate the middle 95% of the distribution estimates. We observe each range to have a wider 95% interval than the actual sample, however the range of the normal distribution is pretty close to the actual range. The weibull distribution has a much wider range and lies lower than the actual interval.
+We can calculate the middle 95% of the median sampling distributions by taking the quantiles at .025 and .975 for each of the median sampling distributions. We observe the normal and gamma distributions to have similar ranges which both contain the actual median. Meanwhile, the weibull distribution holds a greater interval and lies higher than the normal and gamma intervals. There is accuracy and precision among the normal and gamma intervals, whereas the weibull distribution is inaccurate and less precise.
 
 ## MM
 
@@ -758,26 +758,26 @@ abline(v = median(d1$ht), col = 'orange', lwd = 2)
 
 Once again using simulation to generate median, we observe the estimated median sampling distribution as compared to the actual median. The results are very similar to those generated by the MLE approach. The normal distribution captures the actual median in the center of its sampling distribution. Gamma also captures the actual median, however gamma median values tend to lie lower than the actual median. Weibull fails to capture the actual median in this simulation - to an even greater extent with MM than with MLE.
 
-### Range of middle 95% of Samp Dist
+### Range of middle 95% of Median Samp Dist
 
 ```{r}
-dist_est <- c('Actual', 'Normal', 'Gamma', 'Weibull')
-middle_95 <- rbind(quantile(d1$ht, probs = c(.025, .975)),
-                   qnorm(c(.025,.975), mean = mm_norm_mean, sd = mm_norm_sd),
-                   qgamma(c(.025,.975), shape = mm_gamma_shape, scale = mm_gamma_scale),
-                   qweibull(c(.025,.975), shape = mm_weib_shape, scale = mm_weib_scale)) %>% as.data.frame()
+dist_est <- c('Normal', 'Gamma', 'Weibull')
+middle_95 <- rbind(quantile(medians_norm, probs = c(.025, .975)),
+                   quantile(medians_gamma, probs = c(.025, .975)),
+                   quantile(medians_weib, probs = c(.025, .975))) %>% as.data.frame()
 
 middle_95_dist <- cbind(dist_est, middle_95) %>% 
   mutate(`Distribution Estimate` = dist_est,
          `2.5%` = `2.5%` %>% round(3),
          `97.5%` = `97.5%` %>% round(3),
-         Range = `97.5%` - `2.5%`) %>% 
-  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range)
+         Range = `97.5%` - `2.5%`,
+         `Actual Median Contained` = ifelse(`2.5%` <= median(d1$ht) & `97.5%` >= median(d1$ht), T, F)) %>% 
+  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range, `Actual Median Contained`)
 
 kable(middle_95_dist)
 ```
 
-Similarly to how we calculated the medians of each distribution, we can calculate the middle 95% of the distribution estimates. We observe the weibull distribution to have a tighter range than that of the actual distribution, however it lies lower than the actual interval. Meanwhile, normal and gamma have similar intervals to that of the actual interval.
+We can calculate the middle 95% of the median sampling distributions by taking the quantiles at .025 and .975 for each of the median sampling distributions. We observe the normal and gamma distributions to have similar ranges which both contain the actual median. Meanwhile, the weibull distribution holds a tighter range, but does not contain the actual median. There is greater precision for the median sampling distribution for weibull than with the normal and gamma, however the normal and gamma distributions are accurate while the weibull is not.
 
 ## Height Takeaways
 
@@ -785,4 +785,4 @@ We see that distribution estimates of height generated by both MLE and MM are go
 
 # Overall Takeaways
 
-Overall, we see that for both MLE and MM did not provide good fits for glycohemoglobin when testing the normal, gamma, and weibull distributions. However, for height we observed that normal is the best distributive fit out of the three, regardless of the method used. This displays the interchangeability of methods as long as the distribution used is correct. The normal distribution worked for the height variable for both MLE and MM because it was a good distributive fit, the path chosen to get there (MLE or MM) does not matter. In order to evaluate the fit of distributions, you should observe several factors before coming to a final decision: probability density fit, cumulative density fit, quantile fit, median fit, 95% sampling interval fit. While two distributions may seem like good fits in any one of these factors, observing these factors all together should provide a clear answer of the correct distribution to use (as was seen in the normal and gamma height comparison - medians ended up being the tiebreaker). 
+Overall, we see that for both MLE and MM did not provide good fits for glycohemoglobin when testing the normal, gamma, and weibull distributions. However, for height we observed that normal is the best distributive fit out of the three, regardless of the method used. This displays the interchangeability of methods as long as the distribution used is correct. The normal distribution worked for the height variable for both MLE and MM because it was a good distributive fit, the path chosen to get there (MLE or MM) does not matter. In order to evaluate the fit of distributions, you should observe several factors before coming to a final decision: probability density fit, cumulative density fit, quantile fit, median fit. While two distributions may seem like good fits in any one of these factors, observing these factors all together should provide a clear answer of the correct distribution to use (as was seen in the normal and gamma height comparison - medians ended up being the tiebreaker). 
