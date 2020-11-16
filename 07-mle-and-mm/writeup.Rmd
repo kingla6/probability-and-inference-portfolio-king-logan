@@ -1,0 +1,788 @@
+---
+title: "writeup"
+author: "Logan King"
+date: "10/26/2020"
+output: 
+  html_document:
+    code_folding: hide
+    toc_float: TRUE
+---
+
+Modeling the unknown distribution with maximum likelihood and method of moments
+===============================================================================
+
+Maximum likelihood (MLE) and method of moments (MM) are two common
+methods for constructing a model.
+
+The following tutorial will explain how one might use MLE and MM to model 
+(a) Glycohemoglobin and (b) Height of adult females. 
+
+The data is from the National Health and Nutrition Examination Survey 2009-2010 
+(NHANES), available from the Hmisc package. 
+
+Data
+----
+
+```{r message = FALSE, warning = FALSE}
+library(tidyverse)
+library(stats4)
+library(knitr)
+```
+
+```{r}
+Hmisc::getHdata(nhgh)
+d1 <- nhgh %>% 
+  filter(sex == "female") %>% 
+  filter(age >= 18) %>% 
+  select(gh, ht)
+```
+
+```{r}
+set.seed(8)
+```
+
+# Glycohemoglobin
+
+## MLE
+
+### Estimates of Parameters
+
+In order to estimate parameters for the maximum likelihood estimate for each distribution estimate, we must write functions which can estimate the parameter which maximizes the negative log likelihood. For each distribution, we test different values for the relevant parameters on the sample (mean and standard deviation for normal, shape and scale for both gamma and weibull) to find where the negative log likelihood is at a maximum. The value at which negative log likelihood is maximized is used as the value for the parameter of interest. With this method, the relevant parameters for each distribution: normal, gamma, and weibull are estimated for glycohemoglobin.
+
+```{r}
+norm_LL <- function(mean, sd) {
+  fs = dnorm(
+    x = d1$gh,
+    mean = mean,
+    sd = sd,
+    log = T
+  )
+  -sum(fs)
+}
+
+norm_fit <- mle(
+  norm_LL, 
+  start = list(mean = 1, sd = 1),
+  method = 'L-BFGS-B',
+  lower = c(0, .01)
+)
+
+mle_norm_mean <- norm_fit@coef[1]
+mle_norm_sd <- norm_fit@coef[2]
+
+gamma_LL <- function(shape, scale) {
+  fs = dgamma(
+    x = d1$gh,
+    shape = shape,
+    scale = scale,
+    log = T
+  )
+  -sum(fs)
+}
+
+gamma_fit <- mle(
+  gamma_LL, 
+  start = list(shape = 1, scale = 1),
+  method = 'L-BFGS-B',
+  lower = c(0, .01)
+)
+
+mle_gamma_shape <- gamma_fit@coef[1]
+mle_gamma_scale <- gamma_fit@coef[2]
+
+
+weib_LL <- function(shape, scale) {
+  fs = dweibull(
+    x = d1$gh,
+    shape = shape,
+    scale = scale,
+    log = T
+  )
+  -sum(fs)
+}
+
+weib_fit <- mle(
+  weib_LL, 
+  start = list(shape = 1, scale = 1),
+  method = 'L-BFGS-B',
+  lower = c(0, .01)
+)
+
+mle_weib_shape <- weib_fit@coef[1]
+mle_weib_scale <- weib_fit@coef[2]
+```
+
+### Overlay estimated pdf onto histogram
+
+```{r}
+hist(d1$gh, breaks = 50, freq = F, xlim = c(3,16),
+     main = 'Adult Female Glycohemoglobin Density Hist and Estimated PDFs',
+     xlab = 'Glycohemoglobin')
+curve(dnorm(x, mean = mle_norm_mean, sd = mle_norm_sd), add = T, col = 'red', lwd = 2)
+curve(dgamma(x, shape = mle_gamma_shape, scale = mle_gamma_scale), add = T, col = 'blue', lwd = 2)
+curve(dweibull(x, shape = mle_weib_shape, scale = mle_weib_scale), add = T, col = 'green', lwd = 2)
+legend(12, .5, legend = c('Normal', 'Gamma', 'Weibull'), col = c('red', 'blue', 'green'), lty = 1)
+```
+
+From the overlay of the density estimates onto the glycohemoglobin PDF, we observe that none of the distribution estimates is necessarily a good fit for the actual distribution. However, we can tell that the normal and gamma are clearly better fits than the weibull distribution.
+
+### Overlay estimated CDF onto eCDF
+
+```{r}
+plot(ecdf(d1$gh), 
+     main = 'Adult Female Glycohemoglobin ECDF and Estimated CDFs',
+     xlab = 'Glycohemoglobin',
+     ylab = 'Cumulative Density')
+curve(pnorm(x, mean = mle_norm_mean, sd = mle_norm_sd), add = T, col = 'red', lwd = 3)
+curve(pgamma(x, shape = mle_gamma_shape, scale = mle_gamma_scale), add = T, col = 'blue', lwd = 3)
+curve(pweibull(x, shape = mle_weib_shape, scale = mle_weib_scale), add = T, col = 'green', lwd = 3)
+legend(12, .5, legend = c('Normal', 'Gamma', 'Weibull'), col = c('red', 'blue', 'green'), lty = 1)
+```
+
+From the above plot of the CDF estimates against the ECDF, our findings from the previous histogram and PDF plot are further confirmed. None of the estimates are necessarily a good fit, but both normal and gamma outperform the weibull estimate.
+
+### QQ plot (sample vs estimated dist)
+
+```{r}
+p = ppoints(300)
+y = quantile(d1$gh, probs = p)
+
+qqplot(qnorm(p, mean = mle_norm_mean, sd = mle_norm_sd), y,
+       main = 'Glyohemoglobin QQ Plot',
+       xlab = 'Normal Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+
+qqplot(qgamma(p, shape = mle_gamma_shape, scale = mle_gamma_scale), y,
+       main = 'Glyohemoglobin QQ Plot',
+       xlab = 'Gamma Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+
+qqplot(qweibull(p, shape = mle_weib_shape, scale = mle_weib_scale), y,
+       main = 'Glyohemoglobin QQ Plot',
+       xlab = 'Weibull Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+```
+
+The QQ plots again confirm previous findings. Each distribution struggles to conform to the line of identity, although the gamma appears to remain tightest to the identity line in the middle of the distribution. Each distribution is extremely inaccurate at the tails.
+
+### Estimated Median
+
+The median of each distribution is calculated by finding the quantile value at .5 for each distribution. While previously viewed as the poorest fit, the weibull distribution actually has the closest median value to the actual sample. 
+
+```{r results = 'asis'}
+medians <- cbind(c('Actual', 'Normal', 'Gamma', 'Weibull'),
+      c(median(d1$gh) %>% round(3),
+        qnorm(.5, mean = mle_norm_mean, sd = mle_norm_sd) %>% round(3),
+        qgamma(.5, shape = mle_gamma_shape, scale = mle_gamma_scale) %>% round(3),
+        qweibull(.5, shape = mle_weib_shape, scale = mle_weib_scale) %>% round(3))) %>% as.data.frame()
+
+medians[,2] <- medians[,2] %>% as.numeric()
+
+names(medians) <- c('Distribution Estimate', 'Median')
+
+kable(medians)
+```
+
+### Median Samp Dist (hist)
+
+```{r}
+medians_norm <- NA
+for(i in 1:10000) {
+  medians_norm[i] = rnorm(nrow(d1), mean = mle_norm_mean, sd = mle_norm_sd) %>% median()
+}
+
+medians_gamma <- NA
+for(i in 1:10000) {
+  medians_gamma[i] = rgamma(nrow(d1), shape = mle_gamma_shape, scale = mle_gamma_scale) %>% median()
+}
+
+medians_weib <- NA
+for(i in 1:10000) {
+  medians_weib[i] = rweibull(nrow(d1), shape = mle_weib_shape, scale = mle_weib_scale) %>% median()
+}
+```
+
+```{r}
+hist(medians_norm, breaks = 50, xlim = c(median(d1$gh), 6),
+     main = 'Histogram of Glycohemoglobin Normal Medians',
+     xlab = 'Median')
+abline(v = median(d1$gh), col = 'orange', lwd = 2)
+
+hist(medians_gamma, breaks = 50, xlim = c(median(d1$gh), 6),
+     main = 'Histogram of Gamma Medians',
+     xlab = 'Median')
+abline(v = median(d1$gh), col = 'orange', lwd = 2)
+
+hist(medians_weib, breaks = 50, xlim = c(median(d1$gh), 6),
+     main = 'Histogram of Weibull Medians',
+     xlab = 'Median')
+abline(v = median(d1$gh), col = 'orange', lwd = 2)
+```
+
+Generating 10000 samples of each distribution estimate and taking the median of each allows us to generate a sampling distribution of the medians to compare to the actual median. We see that the weibull distribution is the only one that succeeds in capturing the actual median of the sample, while the normal and gamma median sampling distributions overshoot the actual median of the sample.
+
+### Range of middle 95% of Samp Dist
+
+```{r}
+dist_est <- c('Actual', 'Normal', 'Gamma', 'Weibull')
+middle_95 <- rbind(quantile(d1$gh, probs = c(.025, .975)),
+                   qnorm(c(.025,.975), mean = mle_norm_mean, sd = mle_norm_sd),
+                   qgamma(c(.025,.975), shape = mle_gamma_shape, scale = mle_gamma_scale),
+                   qweibull(c(.025,.975), shape = mle_weib_shape, scale = mle_weib_scale)) %>% as.data.frame()
+
+middle_95_dist <- cbind(dist_est, middle_95) %>% 
+  mutate(`Distribution Estimate` = dist_est,
+         `2.5%` = `2.5%` %>% round(3),
+         `97.5%` = `97.5%` %>% round(3),
+         Range = `97.5%` - `2.5%`) %>% 
+  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range)
+
+kable(middle_95_dist)
+```
+
+Similarly to how we calculated the medians of each distribution, we can calculate the middle 95% of the distribution estimates. We observe the gamma distribution to have the tightest interval, even less than that of the actual sample, while the range weibull distribution significantly exceeds the actual range. The interval allows us to see how close the main portions of the distributions are to the actual sample. We see that the normal and gamma provide the best estimate for the middle 95%, but both tend to lean lower, capturing values below the 2.5% and not capturing values up to 97.5%.
+
+## MM
+
+### Estimates of Parameters
+
+For the method of moments, each parameter is estimated based on the distribution's relevant parameter function. For the normal distribution, we take the mean and standard deviation of the sample to estimate the mean and standard deviation of the distribution. A similar approach is taken to estimate the shape and scale of the gamma distribution: the sample mean squared divided by the sample variance estimates the gamma shape while the sample variance divided by the sample mean estimates the gamma scale. Weibull estimates are also developed similarly, however a system of equations must be set up and solved for to obtain the shape and scale estimates.
+
+```{r}
+mm_norm_mean <- mean(d1$gh)
+mm_norm_sd <- sd(d1$gh)
+
+mm_gamma_shape <- (mean(d1$gh) ^ 2) / var(d1$gh)
+mm_gamma_scale <- var(d1$gh) / mean(d1$gh)
+
+weib_lambda <- function(samp_mean, k) {
+  samp_mean / gamma(1 + (1 / k))
+}
+
+weib_var_func <- function(samp_mean, samp_var, k) {
+  ((weib_lambda(samp_mean, k) ^ 2) * (gamma(1 + (2 / k)) - (gamma(1 + (1 / k)) ^ 2))) - samp_var
+}
+
+weib_optimize <- optimize(f = function(x) {abs(weib_var_func(samp_mean = mean(d1$gh), samp_var = var(d1$gh), k = x))}, 
+                          lower = 0, upper = 100)
+
+mm_weib_shape <- weib_optimize$minimum
+
+mm_weib_scale <- weib_lambda(samp_mean = mean(d1$gh), k = mm_weib_shape)
+```
+
+### Overlay estimated pdf onto histogram
+
+```{r}
+hist(d1$gh, breaks = 50, freq = F, xlim = c(3,16),
+     main = 'Adult Female Glycohemoglobin Density Hist and Estimated PDFs',
+     xlab = 'Glycohemoglobin')
+curve(dnorm(x, mean = mm_norm_mean, sd = mm_norm_sd), add = T, col = 'red', lwd = 2)
+curve(dgamma(x, shape = mm_gamma_shape, scale = mm_gamma_scale), add = T, col = 'blue', lwd = 2)
+curve(dweibull(x, shape = mm_weib_shape, scale = mm_weib_scale), add = T, col = 'green', lwd = 2)
+legend(12, .5, legend = c('Normal', 'Gamma', 'Weibull'), col = c('red', 'blue', 'green'), lty = 1)
+```
+
+From the overlay of the density estimates onto the glycohemoglobin PDF, we observe that none of the distribution estimates is necessarily a good fit for the actual distribution. The distributions estimated using method of moments don't provide the great disparity between normal/gamma and weibull that was seen with the MLE estimates, however normal and gamma appear as slightly more reliable fits.
+
+### Overlay estimated CDF onto eCDF
+
+```{r}
+plot(ecdf(d1$gh), 
+     main = 'Adult Female Glycohemoglobin ECDF and Estimated CDFs',
+     xlab = 'Glycohemoglobin',
+     ylab = 'Cumulative Density')
+curve(pnorm(x, mean = mm_norm_mean, sd = mm_norm_sd), add = T, col = 'red', lwd = 3)
+curve(pgamma(x, shape = mm_gamma_shape, scale = mm_gamma_scale), add = T, col = 'blue', lwd = 3)
+curve(pweibull(x, shape = mm_weib_shape, scale = mm_weib_scale), add = T, col = 'green', lwd = 3)
+legend(12, .5, legend = c('Normal', 'Gamma', 'Weibull'), col = c('red', 'blue', 'green'), lty = 1)
+```
+
+From the above plot of the CDF estimates against the ECDF, our findings from the previous histogram and PDF plot are further confirmed. None of the estimates are a good fit, but normal and gamma are slightly better fits than the weibull distribution.
+
+### QQ plot (sample vs estimated dist)
+
+```{r}
+p = ppoints(300)
+y = quantile(d1$gh, probs = p)
+
+qqplot(qnorm(p, mean = mm_norm_mean, sd = mm_norm_sd), y,
+       main = 'Glyohemoglobin QQ Plot',
+       xlab = 'Normal Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+
+qqplot(qgamma(p, shape = mm_gamma_shape, scale = mm_gamma_scale), y,
+       main = 'Glyohemoglobin QQ Plot',
+       xlab = 'Gamma Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+
+qqplot(qweibull(p, shape = mm_weib_shape, scale = mm_weib_scale), y,
+       main = 'Glyohemoglobin QQ Plot',
+       xlab = 'Weibull Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+```
+
+The QQ plots again confirm previous findings. Each distribution struggles to conform to the line of identity and each distribution is extremely inaccurate at the tails.
+
+### Estimated Median
+
+The median of each distribution is calculated by finding the quantile value at .5 for each distribution. The gamma distribution provides the closest median value to the actual sample, but each distribution overshoots the actual median value.
+
+```{r results = 'asis'}
+medians <- cbind(c('Actual', 'Normal', 'Gamma', 'Weibull'),
+      c(median(d1$gh) %>% round(3),
+        qnorm(.5, mean = mm_norm_mean, sd = mm_norm_sd) %>% round(3),
+        qgamma(.5, shape = mm_gamma_shape, scale = mm_gamma_scale) %>% round(3),
+        qweibull(.5, shape = mm_weib_shape, scale = mm_weib_scale) %>% round(3))) %>% as.data.frame()
+
+medians[,2] <- medians[,2] %>% as.numeric()
+
+names(medians) <- c('Distribution Estimate', 'Median')
+
+kable(medians)
+```
+
+### Median Samp Dist (hist)
+
+```{r}
+medians_norm <- NA
+for(i in 1:10000) {
+  medians_norm[i] = rnorm(nrow(d1), mean = mm_norm_mean, sd = mm_norm_sd) %>% median()
+}
+
+medians_gamma <- NA
+for(i in 1:10000) {
+  medians_gamma[i] = rgamma(nrow(d1), shape = mm_gamma_shape, scale = mm_gamma_scale) %>% median()
+}
+
+medians_weib <- NA
+for(i in 1:10000) {
+  medians_weib[i] = rweibull(nrow(d1), shape = mm_weib_shape, scale = mm_weib_scale) %>% median()
+}
+```
+
+```{r}
+hist(medians_norm, breaks = 50, xlim = c(median(d1$gh), 6),
+     main = 'Histogram of Glycohemoglobin Normal Medians',
+     xlab = 'Median')
+abline(v = median(d1$gh), col = 'orange', lwd = 2)
+
+hist(medians_gamma, breaks = 50, xlim = c(median(d1$gh), 6),
+     main = 'Histogram of Gamma Medians',
+     xlab = 'Median')
+abline(v = median(d1$gh), col = 'orange', lwd = 2)
+
+hist(medians_weib, breaks = 50, xlim = c(median(d1$gh), 6),
+     main = 'Histogram of Weibull Medians',
+     xlab = 'Median')
+abline(v = median(d1$gh), col = 'orange', lwd = 2)
+```
+
+Once again using simulation to generate medians, we observe the estimated median sampling distribution as compared to the actual median. Each distribution fails to capture the actual sample median in its sampling distribution, but we see the gamma distribution as closest to the actual value, confirming the above median table.
+
+### Range of middle 95% of Samp Dist
+
+```{r}
+dist_est <- c('Actual', 'Normal', 'Gamma', 'Weibull')
+middle_95 <- rbind(quantile(d1$gh, probs = c(.025, .975)),
+                   qnorm(c(.025,.975), mean = mm_norm_mean, sd = mm_norm_sd),
+                   qgamma(c(.025,.975), shape = mm_gamma_shape, scale = mm_gamma_scale),
+                   qweibull(c(.025,.975), shape = mm_weib_shape, scale = mm_weib_scale)) %>% as.data.frame()
+
+middle_95_dist <- cbind(dist_est, middle_95) %>% 
+  mutate(`Distribution Estimate` = dist_est,
+         `2.5%` = `2.5%` %>% round(3),
+         `97.5%` = `97.5%` %>% round(3),
+         Range = `97.5%` - `2.5%`) %>% 
+  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range)
+
+kable(middle_95_dist)
+```
+
+Similarly to how we calculated the medians of each distribution, we can calculate the middle 95% of the distribution estimates. We observe each distribution to have a wider 95% interval than the actual sample. Similar to the MLE 95% interval estimates, the MM interval estimates are lower than the actual sample and dail to capture values up to 97.5%, however it occurs for every distribution with MM.
+
+## Glycohemoglobin Takeaways
+
+We see that distribution estimates of glycohemoglobin generated by both MLE and MM are not very accurate. MLE painted normal and gamma as better fits than the weibull distribution, but MM portrayed all of these as pretty similar. If we are trying to find which distribution fits the glycohemoglobin data the best, we can use either of these methods, but must test with different distributions.
+
+-----------------------------------------------------------------------------
+
+# Height
+
+## MLE
+
+### Estimates of Parameters
+
+The maximum likelihood estimates for the distribution parameters for height are found by taking the exact same steps as used for the glycohemoglobin above. The only change is to change the sample of interest to height from glycohemoglobin.
+
+```{r}
+norm_LL <- function(mean, sd) {
+  fs = dnorm(
+    x = d1$ht,
+    mean = mean,
+    sd = sd,
+    log = T
+  )
+  -sum(fs)
+}
+
+norm_fit <- mle(
+  norm_LL, 
+  start = list(mean = 1, sd = 1),
+  method = 'L-BFGS-B',
+  lower = c(0, .01)
+)
+
+mle_norm_mean <- norm_fit@coef[1]
+mle_norm_sd <- norm_fit@coef[2]
+
+gamma_LL <- function(shape, scale) {
+  fs = dgamma(
+    x = d1$ht,
+    shape = shape,
+    scale = scale,
+    log = T
+  )
+  -sum(fs)
+}
+
+gamma_fit <- mle(
+  gamma_LL, 
+  start = list(shape = 1, scale = 1),
+  method = 'L-BFGS-B',
+  lower = c(0, .01)
+)
+
+mle_gamma_shape <- gamma_fit@coef[1]
+mle_gamma_scale <- gamma_fit@coef[2]
+
+
+weib_LL <- function(shape, scale) {
+  fs = dweibull(
+    x = d1$ht,
+    shape = shape,
+    scale = scale,
+    log = T
+  )
+  -sum(fs)
+}
+
+weib_fit <- mle(
+  weib_LL, 
+  start = list(shape = 1, scale = 1),
+  method = 'L-BFGS-B',
+  lower = c(0, .01)
+)
+
+mle_weib_shape <- weib_fit@coef[1]
+mle_weib_scale <- weib_fit@coef[2]
+```
+
+### Overlay estimated pdf onto histogram
+
+```{r}
+hist(d1$ht, breaks = 50, freq = F,
+     main = 'Adult Female Height Density Histogram and Estimated PDFs',
+     xlab = 'Height')
+curve(dnorm(x, mean = mle_norm_mean, sd = mle_norm_sd), add = T, col = 'red', lwd = 2)
+curve(dgamma(x, shape = mle_gamma_shape, scale = mle_gamma_scale), add = T, col = 'blue', lwd = 2)
+curve(dweibull(x, shape = mle_weib_shape, scale = mle_weib_scale), add = T, col = 'green', lwd = 2)
+legend(130, .05, legend = c('Normal', 'Gamma', 'Weibull'), col = c('red', 'blue', 'green'), lty = 1)
+```
+
+From the overlay of the density estimates onto the height PDF, we observe that both normal and gamma distribution estimates appear to be good fits for the actual distribution. Weibull appears to be shifted further right and overestimate densities for the left tail and underestimate densities for the right tail. 
+
+### Overlay estimated CDF onto eCDF
+
+```{r}
+plot(ecdf(d1$ht), 
+     main = 'Adult Female Height ECDF and Estimated CDFs',
+     xlab = 'Height',
+     ylab = 'Cumulative Density')
+curve(pnorm(x, mean = mle_norm_mean, sd = mle_norm_sd), add = T, col = 'red', lwd = 3)
+curve(pgamma(x, shape = mle_gamma_shape, scale = mle_gamma_scale), add = T, col = 'blue', lwd = 3)
+curve(pweibull(x, shape = mle_weib_shape, scale = mle_weib_scale), add = T, col = 'green', lwd = 3)
+legend(130, .8, legend = c('Normal', 'Gamma', 'Weibull'), col = c('red', 'blue', 'green'), lty = 1)
+```
+
+From the above plot of the CDF estimates against the ECDF, our findings from the previous histogram and PDF plot are further confirmed. Normal and gamma estimates appear as good fits while weibull is inaccurate, especially on the left tail.
+
+### QQ plot (sample vs estimated dist)
+
+```{r}
+p = ppoints(300)
+y = quantile(d1$ht, probs = p)
+
+qqplot(qnorm(p, mean = mle_norm_mean, sd = mle_norm_sd), y,
+       main = 'Height QQ Plot',
+       xlab = 'Normal Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+
+qqplot(qgamma(p, shape = mle_gamma_shape, scale = mle_gamma_scale), y,
+       main = 'Height QQ Plot',
+       xlab = 'Gamma Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+
+qqplot(qweibull(p, shape = mle_weib_shape, scale = mle_weib_scale), y,
+       main = 'Height QQ Plot',
+       xlab = 'Weibull Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+```
+
+The QQ plots again confirm previous findings. Normal and gamma lie along the line of identity while weibull deviates at the tails. Normal appears to be a slightly better fit than gamma at the upper tail, while gamma appears better on the lower tail.
+
+### Estimated Median
+
+The median of each distribution is calculated by finding the quantile value at .5 for each distribution. The median for the normal estimate is almost exactly that of the actual sample. Gamma is also close to the actual median and weibull is pretty far off, comparatively.
+
+```{r results = 'asis'}
+medians <- cbind(c('Actual', 'Normal', 'Gamma', 'Weibull'),
+      c(median(d1$ht) %>% round(3),
+        qnorm(.5, mean = mle_norm_mean, sd = mle_norm_sd) %>% round(3),
+        qgamma(.5, shape = mle_gamma_shape, scale = mle_gamma_scale) %>% round(3),
+        qweibull(.5, shape = mle_weib_shape, scale = mle_weib_scale) %>% round(3))) %>% as.data.frame()
+
+medians[,2] <- medians[,2] %>% as.numeric()
+
+names(medians) <- c('Distribution Estimate', 'Median')
+
+kable(medians)
+```
+
+### Median Samp Dist (hist)
+
+```{r}
+medians_norm <- NA
+for(i in 1:10000) {
+  medians_norm[i] = rnorm(nrow(d1), mean = mle_norm_mean, sd = mle_norm_sd) %>% median()
+}
+
+medians_gamma <- NA
+for(i in 1:10000) {
+  medians_gamma[i] = rgamma(nrow(d1), shape = mle_gamma_shape, scale = mle_gamma_scale) %>% median()
+}
+
+medians_weib <- NA
+for(i in 1:10000) {
+  medians_weib[i] = rweibull(nrow(d1), shape = mle_weib_shape, scale = mle_weib_scale) %>% median()
+}
+```
+
+```{r}
+hist(medians_norm, breaks = 50,
+     main = 'Histogram of Normal Medians',
+     xlab = 'Median')
+abline(v = median(d1$ht), col = 'orange', lwd = 2)
+
+hist(medians_gamma, breaks = 50,
+     main = 'Histogram of Gamma Medians',
+     xlab = 'Median')
+abline(v = median(d1$ht), col = 'orange', lwd = 2)
+
+hist(medians_weib, breaks = 50, xlim = c(median(d1$ht), 163),
+     main = 'Histogram of Weibull Medians',
+     xlab = 'Median')
+abline(v = median(d1$ht), col = 'orange', lwd = 2)
+```
+
+Once again using simulation to generate median, we observe the estimated median sampling distribution as compared to the actual median. The normal distribution captures the actual median in the center of its sampling distribution. Gamma also captures the actual median, however gamma median values tend to lie lower than the actual median. Weibull fails to capture the actual median in this simulation.
+
+### Range of middle 95% of Samp Dist
+
+```{r}
+dist_est <- c('Actual', 'Normal', 'Gamma', 'Weibull')
+middle_95 <- rbind(quantile(d1$ht, probs = c(.025, .975)),
+                   qnorm(c(.025,.975), mean = mle_norm_mean, sd = mle_norm_sd),
+                   qgamma(c(.025,.975), shape = mle_gamma_shape, scale = mle_gamma_scale),
+                   qweibull(c(.025,.975), shape = mle_weib_shape, scale = mle_weib_scale)) %>% as.data.frame()
+
+middle_95_dist <- cbind(dist_est, middle_95) %>% 
+  mutate(`Distribution Estimate` = dist_est,
+         `2.5%` = `2.5%` %>% round(3),
+         `97.5%` = `97.5%` %>% round(3),
+         Range = `97.5%` - `2.5%`) %>% 
+  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range)
+
+kable(middle_95_dist)
+```
+
+Similarly to how we calculated the medians of each distribution, we can calculate the middle 95% of the distribution estimates. We observe each range to have a wider 95% interval than the actual sample, however the range of the normal distribution is pretty close to the actual range. The weibull distribution has a much wider range and lies lower than the actual interval.
+
+## MM
+
+### Estimates of Parameters
+
+The method of moments estimates for the distribution parameters for height are found by taking the exact same steps as used for the glycohemoglobin above. The only change is to change the sample of interest to height from glycohemoglobin.
+
+```{r}
+mm_norm_mean <- mean(d1$ht)
+mm_norm_sd <- sd(d1$ht)
+
+mm_gamma_shape <- (mean(d1$ht) ^ 2) / var(d1$ht)
+mm_gamma_scale <- var(d1$ht) / mean(d1$ht)
+
+weib_lambda <- function(samp_mean, k) {
+  samp_mean / gamma(1 + (1 / k))
+}
+
+weib_var_func <- function(samp_mean, samp_var, k) {
+  ((weib_lambda(samp_mean, k) ^ 2) * (gamma(1 + (2 / k)) - (gamma(1 + (1 / k)) ^ 2))) - samp_var
+}
+
+weib_optimize <- optimize(f = function(x) {abs(weib_var_func(samp_mean = mean(d1$ht), samp_var = var(d1$ht), k = x))}, 
+                          lower = 10, upper = 100)
+
+mm_weib_shape <- weib_optimize$minimum
+
+mm_weib_scale <- weib_lambda(samp_mean = mean(d1$ht), k = mm_weib_shape)
+```
+
+### Overlay estimated pdf onto histogram
+
+```{r}
+hist(d1$ht, breaks = 50, freq = F, ylim = c(0, .07),
+     main = 'Adult Female Height Density Histogram and Estimated PDFs',
+     xlab = 'Height')
+curve(dnorm(x, mean = mm_norm_mean, sd = mm_norm_sd), add = T, col = 'red', lwd = 2)
+curve(dgamma(x, shape = mm_gamma_shape, scale = mm_gamma_scale), add = T, col = 'blue', lwd = 2)
+curve(dweibull(x, shape = mm_weib_shape, scale = mm_weib_scale), add = T, col = 'green', lwd = 2)
+legend(130, .05, legend = c('Normal', 'Gamma', 'Weibull'), col = c('red', 'blue', 'green'), lty = 1)
+```
+
+As with the MLE, from the overlay of the MM density estimates onto the height PDF, we observe that both normal and gamma distribution estimates appear to be good fits for the actual distribution. Weibull appears to be shifted further right and overestimate densities over the 160-170 height interval and at the left tail, while underestimating elsewhere.
+
+### Overlay estimated CDF onto eCDF
+
+```{r}
+plot(ecdf(d1$ht), 
+     main = 'Adult Female Height ECDF and Estimated CDFs',
+     xlab = 'Height',
+     ylab = 'Cumulative Density')
+curve(pnorm(x, mean = mm_norm_mean, sd = mm_norm_sd), add = T, col = 'red', lwd = 3)
+curve(pgamma(x, shape = mm_gamma_shape, scale = mm_gamma_scale), add = T, col = 'blue', lwd = 3)
+curve(pweibull(x, shape = mm_weib_shape, scale = mm_weib_scale), add = T, col = 'green', lwd = 3)
+legend(130, .8, legend = c('Normal', 'Gamma', 'Weibull'), col = c('red', 'blue', 'green'), lty = 1)
+```
+
+From the above plot of the CDF estimates against the ECDF, our findings from the previous histogram and PDF plot are further confirmed. Normal and gamma estimates appear as good fits while weibull is inaccurate on the intervals previously mentioned.
+
+### QQ plot (sample vs estimated dist)
+
+```{r}
+p = ppoints(300)
+y = quantile(d1$ht, probs = p)
+
+qqplot(qnorm(p, mean = mm_norm_mean, sd = mm_norm_sd), y,
+       main = 'Height QQ Plot',
+       xlab = 'Normal Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+
+qqplot(qgamma(p, shape = mm_gamma_shape, scale = mm_gamma_scale), y,
+       main = 'Height QQ Plot',
+       xlab = 'Gamma Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+
+qqplot(qweibull(p, shape = mm_weib_shape, scale = mm_weib_scale), y,
+       main = 'Height QQ Plot',
+       xlab = 'Weibull Quantile Estimates',
+       ylab = 'Actual Quantiles')
+abline(0,1)
+```
+
+The QQ plots again confirm previous findings. Normal and gamma lie along the line of identity while weibull deviates over the previously mentioned intervals. Normal appears to be a slightly better fit than gamma at the upper tail, while gamma appears better on the lower tail.
+
+### Estimated Median
+
+The median of each distribution is calculated by finding the quantile value at .5 for each distribution. The median values for the normal and gamma distributions generated by MM are identical to those generated by MLE. The median for the normal estimate is almost exactly that of the actual sample. Gamma is also close to the actual median and weibull is pretty far off, comparatively.
+
+```{r results = 'asis'}
+medians <- cbind(c('Actual', 'Normal', 'Gamma', 'Weibull'),
+      c(median(d1$ht) %>% round(3),
+        qnorm(.5, mean = mm_norm_mean, sd = mm_norm_sd) %>% round(3),
+        qgamma(.5, shape = mm_gamma_shape, scale = mm_gamma_scale) %>% round(3),
+        qweibull(.5, shape = mm_weib_shape, scale = mm_weib_scale) %>% round(3))) %>% as.data.frame()
+
+medians[,2] <- medians[,2] %>% as.numeric()
+
+names(medians) <- c('Distribution Estimate', 'Median')
+
+kable(medians)
+```
+
+### Median Samp Dist (hist)
+
+```{r}
+medians_norm <- NA
+for(i in 1:10000) {
+  medians_norm[i] = rnorm(nrow(d1), mean = mm_norm_mean, sd = mm_norm_sd) %>% median()
+}
+
+medians_gamma <- NA
+for(i in 1:10000) {
+  medians_gamma[i] = rgamma(nrow(d1), shape = mm_gamma_shape, scale = mm_gamma_scale) %>% median()
+}
+
+medians_weib <- NA
+for(i in 1:10000) {
+  medians_weib[i] = rweibull(nrow(d1), shape = mm_weib_shape, scale = mm_weib_scale) %>% median()
+}
+```
+
+```{r}
+hist(medians_norm, breaks = 50,
+     main = 'Histogram of Normal Medians',
+     xlab = 'Median')
+abline(v = median(d1$ht), col = 'orange', lwd = 2)
+
+hist(medians_gamma, breaks = 50,
+     main = 'Histogram of Gamma Medians',
+     xlab = 'Median')
+abline(v = median(d1$ht), col = 'orange', lwd = 2)
+
+hist(medians_weib, breaks = 50, xlim = c(median(d1$ht), 163),
+     main = 'Histogram of Weibull Medians',
+     xlab = 'Median')
+abline(v = median(d1$ht), col = 'orange', lwd = 2)
+```
+
+Once again using simulation to generate median, we observe the estimated median sampling distribution as compared to the actual median. The results are very similar to those generated by the MLE approach. The normal distribution captures the actual median in the center of its sampling distribution. Gamma also captures the actual median, however gamma median values tend to lie lower than the actual median. Weibull fails to capture the actual median in this simulation - to an even greater extent with MM than with MLE.
+
+### Range of middle 95% of Samp Dist
+
+```{r}
+dist_est <- c('Actual', 'Normal', 'Gamma', 'Weibull')
+middle_95 <- rbind(quantile(d1$ht, probs = c(.025, .975)),
+                   qnorm(c(.025,.975), mean = mm_norm_mean, sd = mm_norm_sd),
+                   qgamma(c(.025,.975), shape = mm_gamma_shape, scale = mm_gamma_scale),
+                   qweibull(c(.025,.975), shape = mm_weib_shape, scale = mm_weib_scale)) %>% as.data.frame()
+
+middle_95_dist <- cbind(dist_est, middle_95) %>% 
+  mutate(`Distribution Estimate` = dist_est,
+         `2.5%` = `2.5%` %>% round(3),
+         `97.5%` = `97.5%` %>% round(3),
+         Range = `97.5%` - `2.5%`) %>% 
+  select(`Distribution Estimate`, `2.5%`, `97.5%`, Range)
+
+kable(middle_95_dist)
+```
+
+Similarly to how we calculated the medians of each distribution, we can calculate the middle 95% of the distribution estimates. We observe the weibull distribution to have a tighter range than that of the actual distribution, however it lies lower than the actual interval. Meanwhile, normal and gamma have similar intervals to that of the actual interval.
+
+## Height Takeaways
+
+We see that distribution estimates of height generated by both MLE and MM are good fits for both the normal and gamma distributions. Based on the different observations for each distribution, normal is probably the best distribution for height - it edges the gamma distribution out when looking at the simulated sampling distribution of medians. Regardless of method, normal is clearly the best distribution to represent height.
+
+# Overall Takeaways
+
+Overall, we see that for both MLE and MM did not provide good fits for glycohemoglobin when testing the normal, gamma, and weibull distributions. However, for height we observed that normal is the best distributive fit out of the three, regardless of the method used. This displays the interchangeability of methods as long as the distribution used is correct. The normal distribution worked for the height variable for both MLE and MM because it was a good distributive fit, the path chosen to get there (MLE or MM) does not matter. In order to evaluate the fit of distributions, you should observe several factors before coming to a final decision: probability density fit, cumulative density fit, quantile fit, median fit, 95% sampling interval fit. While two distributions may seem like good fits in any one of these factors, observing these factors all together should provide a clear answer of the correct distribution to use (as was seen in the normal and gamma height comparison - medians ended up being the tiebreaker). 
