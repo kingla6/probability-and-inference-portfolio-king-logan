@@ -567,7 +567,7 @@ both_goat_prob &lt;- ifelse(p1_df$outcome_1 == &#39;goat&#39; &amp; p1_df$outcom
 both_goat_prob</code></pre>
 <pre><code>## [1] 0.36</code></pre>
 <pre class="r"><code>toc()</code></pre>
-<pre><code>## 0.79 sec elapsed</code></pre>
+<pre><code>## 0.78 sec elapsed</code></pre>
 <p>We use simulation to find the probability that both strategies result in a goat. A game is played with four doors and the results are saved for staying (strategy 1) and switching (strategy 2). This is repeated 100 times and the results are saved in a dataframe. We then determine the proportion of times that both results were goat over the total number of games played.</p>
 <p><strong>B</strong>. Continuing from part <strong>C</strong>, what is the probability that at least one of the strategies results in winning a car?</p>
 <pre class="r"><code>1 - both_goat_prob</code></pre>
