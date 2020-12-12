@@ -1,0 +1,106 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    code_folding: hide
+    toc_float: TRUE
+---
+
+Simulation study: Power and sample size calculations correlational studies
+================================================================================
+
+A common research objective is to demonstrate that two measurements are
+highly correlated. One measurement, call it A, may reflect the severity
+of disease but is difficult or costly to collect. Another measurement,
+call it B, may be easier to collect and potentially related to
+measurement A. If there is strong association between A and B, a cost
+effective strategy for diagnosis may be to collect measurement B instead
+of A.
+
+In this deliverable, you will perform a power and sample size
+calculation for a collaborator who is submitting a grant application to
+fund a study to show that two measurements are highly correlated.
+Reviewers of the grant want to fund studies that have a high likelihood
+of success, which in this setting is conclusively demonstrating that the
+correlation between A and B is greater than 0.8.
+
+The researcher will collect both measurements on N individuals. The
+analysis will proceed by calculating a one-sided confidence interval. If
+the confidence interval is completely within the range from 0.8 to 1,
+then the researcher will consider the study to be a success: A
+conclusive demonstration that the correlation between A and B is greater
+than 0.8.
+
+**Power** is the probability that the study will end in success when the
+true underlying correlation is, in fact, greater than 0.8. (Note the
+connection to Type II error ($\beta$): **power** = 1 - $\beta$.) Your 
+collaborator needs you to estimate power for different combinations of sample 
+size and the true population correlation. Let the sample size be 25, 50, 75,
+and 100. Let the population correlation range from 0.8 to 0.95.
+
+You will write a blog post to explain your simulation study and results.
+The audience of your blog post is the grant reviewers. Describe the
+simulation. Comment on any patterns you observe. Generate a plot to include in 
+the write-up.
+--------------------------------------------------------------------------------
+
+In order to display the relationship of correlation between measurements and the reliability of these correlations across sample sizes, we write a function and conduct a simulation. 
+
+```{r}
+library(mvtnorm)
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+corr_power <- function(N, rho) {
+  set.seed(1234)
+  null_correlation <- 0.8
+  R <- 5000
+  
+  sigma <- array(c(1,rho,rho,1), c(2,2))
+  mu <- c(0,0)
+  
+  detect <- rep(NA, R)
+  for(i in 1:R){
+    data <- rmvnorm(N, mean = mu, sigma = sigma)
+    #Measurement A is data[,1]
+    #Measurement B is data[,2]
+    #option alternative = 'greater' is one sided 95% CI
+    results <- cor.test(x = data[,1], y = data[,2], alternative = "greater")
+    #test if lower bound is strictly greater than 0.8
+    detect[i] <- results$conf.int[1] > null_correlation
+  }
+  power <- mean(detect)
+  return(power)
+}
+```
+
+Our function takes the inputs of: sample size of the individuals from which data was collected (N) and the true population correlation between the two measurements that were taken (rho). The function begins by setting a null correlation value of 0.8 (the value for which we want the correlation to be above) and a number of iterations for which a simulation within the function will run (5000). Matrices which represent the parameters of interest (mu and sigma) for the multivariate normal distribution (discussed later) are initialized, with relation to rho. A simulation is then conducted 5000 times which creates a random sample of size N from the multivariate normal distribution with parameters mu and sigma. Within the same iteration of the simulation, the result of this random sample are two sets of measurements from which the one sided correlation test is calculated. From this test, it is determined whether or not the lower bound of our confidence interval exceeds the null correlation value of .8, the result is saved within a vector (1 if true, 0 if false). We then calculate the mean of this vector to determine the proportion of results which exceed the null correlation value, the resulting proportion is the power (the probability that our study will end in success) of our study for the given N and rho.
+
+```{r}
+N <- c(25, 50, 75, 100)
+rho <- seq(.8, .95, by = .01)
+results_df <- expand.grid(N=N, rho=rho, power = NA)
+```
+
+```{r}
+for(i in 1:nrow(results_df)) {
+  results_df$power[i] = corr_power(N = results_df$N[i], rho = results_df$rho[i])
+}
+```
+
+After calculating for a single value of N and rho, we calculate powers from our function for the remaining combinations of N and rho. The results are displayed in the plot below. 
+
+```{r}
+ggplot(results_df, aes(x = rho, y = power, col = factor(N))) +
+  geom_line() +
+  labs(title = 'Correlation vs Power',
+       subtitle = 'Over Various Sample Sizes',
+       y = 'Power',
+       x = 'Correlation',
+       col = 'Sample Size') +
+  theme_classic()
+```
+
+We see that an increased sample size provides the most correlation and power over all observations. We see extremely high power (approaching 1) over all sample sizes when the population correlation rises above .9. From this we can conclude that if we know the value of the population to be extremely high, we may be able to rely on a lower sample size of individuals. If the simulation was repeated a greater amount of times, the lines on the graph would increase in their smoothness. 
