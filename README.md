@@ -9,6 +9,6 @@ Repo for DS 5620
 * Deliverable 5 - [Log Transformation](https://github.com/kingla6/probability-and-inference-portfolio-king-logan/blob/master/05-log-transformation/writeup.md)
 * Deliverable 6 - [Order Statistics](https://github.com/kingla6/probability-and-inference-portfolio-king-logan/blob/master/06-order-statistics/writeup.md)
 * Deliverable 7 - [MLE and MM](https://github.com/kingla6/probability-and-inference-portfolio-king-logan/blob/master/07-mle-and-mm/writeup.html)
-* Deliverable 8 - Coverage Probability
+* Deliverable 8 - [Coverage Probability](https://github.com/kingla6/probability-and-inference-portfolio-king-logan/blob/master/08-coverage-probability/writeup.html)
 * Deliverable 11 - Correlation and Power
 * Final Exam - Final Exam Writeup
