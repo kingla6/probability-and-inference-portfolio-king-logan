@@ -9,6 +9,30 @@ output:
 Coverage Probability
 ====================
 
+Coverage probability is an important operating characteristic of methods
+for constructing interval estimates, particularly confidence intervals.
+
+**Definition:** For the purposes of this deliverable, define the 95%
+confidence interval of the median to be the middle 95% of sampling
+distribution of the median. Similarly, the 95% confidence interval of
+the mean, standard deviation, etc. is the middle 95% of the respective
+sampling distribution.
+
+**Definition:** For the purposes of this deliverable, define the
+coverage probability as the long run proportion of intervals that
+capture the population parameter of interest. Conceptualy, one can
+calculate the coverage probability with the following steps
+
+1.  generate a sample of size *N* from a known distribution
+2.  construct a confidence interval
+3.  determine if the confidence captures the population parameter
+4.  Repeat steps (1) - (3) many times. Estimate the coverage probability
+    as the proportion of samples for which the confidence interval
+    captured the population parameter.
+
+Idealy, a 95% confidence interval will capture the population parameter
+of interest in 95% of samples.
+
 Assignment
 --------------------------------------------------------------------------------
 In this assignment, you will perform a simulation to calculate the
