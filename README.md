@@ -1,5 +1,5 @@
 # probability-and-inference-portfolio-king-logan
-Repo for DS 5620 
+Repo for DS 5620 - Includes various write-ups of probability and inference topics. 
 
 ## Writeups for deliverables can be found below
 * Deliverable 1 - [Roulette Simulation](https://github.com/kingla6/probability-and-inference-portfolio-king-logan/blob/master/01-roulette-simulation/writeup.md)
